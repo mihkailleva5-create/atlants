@@ -77,15 +77,9 @@ function readBody(req) {
 // Login Widget: callback has standard field names, data-check string uses auth_* names
 function verifyTelegramLogin(data, hash) {
   if (!BOT_TOKEN) return { ok: false, error: 'Bot token not configured' };
-  const authData = {
-    auth_date: String(data.auth_date || ''),
-    auth_name: data.first_name || (data.first_name !== undefined ? data.first_name : ''),
-    auth_photo_url: data.photo_url || '',
-    auth_username: data.username || '',
-    auth_user_id: String(data.id || ''),
-  };
-  const fields = Object.keys(authData).filter((k) => authData[k] !== undefined && authData[k] !== '').sort();
-  const dataCheckString = fields.map((k) => `${k}=${authData[k]}`).join('\n');
+  // Use ORIGINAL key names from Login Widget: id, first_name, username, photo_url, auth_date
+  const fields = Object.keys(data).filter(k => k !== 'hash').sort();
+  const dataCheckString = fields.map(k => `${k}=${data[k]}`).join('\n');
   const secretKey = crypto.createHmac('sha256', BOT_TOKEN).update(dataCheckString).digest();
   const computedHash = crypto.createHash('sha256').update(secretKey).digest('base64');
   return { ok: computedHash === hash, dataCheckString };
@@ -100,8 +94,9 @@ function verifyTelegramWebApp(initData) {
   const hash = data.hash;
   if (!hash) return { ok: false, error: 'No hash in initData' };
   delete data.hash;
-  const fields = Object.keys(data).filter((k) => data[k] !== undefined && data[k] !== '').sort();
-  const dataCheckString = fields.map((k) => `${k}=${data[k]}`).join('\n');
+  // Include ALL fields (even empty) — Telegram includes them in data-check string
+  const keys = Object.keys(data).sort();
+  const dataCheckString = keys.map((k) => `${k}=${data[k]}`).join('\n');
   const secretKey = crypto.createHmac('sha256', BOT_TOKEN).update(dataCheckString).digest();
   const computedHash = crypto.createHash('sha256').update(secretKey).digest('base64');
   return { ok: computedHash === hash, data, dataCheckString };

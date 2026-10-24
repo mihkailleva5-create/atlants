@@ -16,6 +16,7 @@ export const TG = {
   ready: false,      // logged in via Telegram
   initialized: false,
   _onChange: null,
+  widgetRendered: false,
 };
 
 export function setOnChange(fn) { TG._onChange = fn; }
@@ -41,20 +42,40 @@ export function isWebApp() {
   return !!(webApp() && webApp().ready);
 }
 
-// ---- Login Widget (web page with <telegram-login-widget>) ----
-function loginWidget() {
-  return typeof window !== 'undefined' && window.TelegramLoginWidget;
-}
+// ---- global callback for Login Widget ----
+window.onTelegramAuth = async function(user) {
+  // user: { id, first_name, last_name, username, photo_url, auth_date, hash }
+  try {
+    const r = await fetch(AUTH_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ authData: user }),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      TG.user = d.user;
+      TG.token = d.token;
+      TG.userId = d.userId;
+      TG.ready = true;
+      emit();
+      return true;
+    }
+    console.error('Telegram auth failed:', d.error);
+  } catch (e) {
+    console.error('Telegram auth error:', e);
+  }
+  return false;
+};
 
 // ---- auth flow ----
 export async function initAuth() {
   await loadConfig();
-  // 1. Try WebApp if inside Telegram
+
+  // 1. Try WebApp if inside Telegram Mini App
   if (isWebApp()) {
     const wa = webApp();
     wa.ready();
     wa.enableClosingConfirmation();
-    // initData is a URL-encoded query string with hash
     if (wa.initData) {
       try {
         const r = await fetch(AUTH_URL, {
@@ -63,60 +84,53 @@ export async function initAuth() {
           body: JSON.stringify({ authData: { initData: wa.initData } }),
         });
         const d = await r.json();
-        if (d.ok) { setUser(d); emit(); return true; }
+        if (d.ok) {
+          TG.user = d.user;
+          TG.token = d.token;
+          TG.userId = d.userId;
+          TG.ready = true;
+          emit();
+          return true;
+        }
       } catch (e) { /* fall through to widget */ }
     }
   }
-  // 2. Try Login Widget if present
-  if (loginWidget()) {
-    const widget = new window.TelegramLoginWidget();
-    widget.setButtonPath('/tg/login');
-    widget.setHandler((user) => {
-      userAuth(user).then((ok) => { if (ok) emit(); });
-    });
-    widget.render();
+
+  // 2. Render Login Widget (if not in WebApp)
+  if (!TG.ready && TG.config.hasToken && TG.config.botName) {
+    renderLoginWidget();
   }
+
   return !!TG.ready;
 }
 
-// manual: set initData from WebApp (if called after ready)
-export async function webAppAuth(initData) {
-  const r = await fetch(AUTH_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ authData: { initData } }),
-  });
-  const d = await r.json();
-  if (d.ok) { setUser(d); emit(); return true; }
-  return false;
-}
+// ---- render Login Widget as HTML element ----
+function renderLoginWidget() {
+  if (TG.widgetRendered) return;
+  TG.widgetRendered = true;
 
-export async function userAuth(user) {
-  try {
-    const r = await fetch(AUTH_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ authData: user }),
-    });
-    const d = await r.json();
-    if (d.ok) { setUser(d); emit(); return true; }
-  } catch (e) { /* offline */ }
-  return false;
-}
+  // Create the widget element
+  const widget = document.createElement('telegram-login-widget');
+  widget.setAttribute('data-bot-name', TG.config.botName);
+  widget.setAttribute('data-size', 'large');
+  widget.setAttribute('data-onauth', 'onTelegramAuth(user)');
+  widget.setAttribute('data-request-access', 'write');
+  widget.setAttribute('data-userpic', 'false');
+  widget.setAttribute('data-style', 'bubbles');
+  widget.setAttribute('data-corner-radius', '12');
 
-function setUser(d) {
-  TG.user = d.user;
-  TG.token = d.token;
-  TG.userId = d.userId;
-  TG.ready = true;
-}
-
-export function logout() {
-  TG.user = null;
-  TG.token = null;
-  TG.userId = null;
-  TG.ready = false;
-  emit();
+  // Place it in a visible container
+  const container = document.getElementById('tg-widget-container');
+  if (container) {
+    container.appendChild(widget);
+  } else {
+    // Fallback: create a container
+    const c = document.createElement('div');
+    c.id = 'tg-widget-container';
+    c.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:45;';
+    c.appendChild(widget);
+    document.body.appendChild(c);
+  }
 }
 
 // ---- save sync ----
@@ -166,16 +180,10 @@ export async function resetSave() {
   } catch (e) { return false; }
 }
 
-// ---- widget loader (for index.html) ----
-export function loadLoginWidgetScript() {
-  return new Promise((resolve) => {
-    if (typeof window.TelegramLoginWidget !== 'undefined') return resolve(true);
-    if (!TG.config.hasToken) return resolve(false);
-    const s = document.createElement('script');
-    s.async = true;
-    s.src = 'https://telegram.org/js/telegram-widget.js?2';
-    s.onload = () => resolve(!!window.TelegramLoginWidget);
-    s.onerror = () => resolve(false);
-    document.head.appendChild(s);
-  });
+export function logout() {
+  TG.user = null;
+  TG.token = null;
+  TG.userId = null;
+  TG.ready = false;
+  emit();
 }
