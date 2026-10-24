@@ -1,282 +1,210 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ATLANT: Arena Brawl</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATLANTIS — День с Nubia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Rubik:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; }
-  body {
-    background: #05060f;
-    font-family: 'Segoe UI', 'DejaVu Sans', system-ui, sans-serif;
-    color: #cde;
-    cursor: default;
+  :root {
+    --bg: #05060f;
+    --panel: rgba(10, 16, 32, 0.88);
+    --panel-2: rgba(20, 30, 55, 0.85);
+    --border: rgba(120, 160, 230, 0.28);
+    --gold: #ffb454;
+    --prismarin: #4dd0ff;
+    --eyes: #ff5a7a;
+    --hp: #ff4a6a;
+    --energy: #ffd24a;
+    --block: #6acdff;
   }
-  #game { display: block; width: 100vw; height: 100vh; }
-  body::after {
-    content: '';
-    position: fixed; inset: 0; pointer-events: none; z-index: 5;
-    background: repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 3px);
-  }
-  .hidden { display: none !important; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: #e8eeff; font-family: 'Rubik', sans-serif; }
+  canvas#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
 
-  /* ---------- loading ---------- */
-  #loading {
-    position: fixed; inset: 0; z-index: 50;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: #05060f;
-  }
-  .load-title {
-    font-size: 64px; font-weight: 900; letter-spacing: 12px;
-    background: linear-gradient(180deg, #fff, #66f0ff);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    filter: drop-shadow(0 0 24px rgba(0,229,255,0.4));
-  }
-  .load-sub { color: #6789a; letter-spacing: 4px; margin: 8px 0 28px; font-size: 14px; }
-  .load-bar-wrap { width: 340px; height: 8px; background: #101a2c; border: 1px solid #2a4a66; border-radius: 4px; overflow: hidden; }
-  .load-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #00e5ff, #66f0ff); box-shadow: 0 0 14px #00e5ff; transition: width 0.2s; }
-  .load-text { margin-top: 12px; color: #567; font-size: 13px; letter-spacing: 2px; }
+  /* ---- top bar ---- */
+  #topbar { position: fixed; top: 0; left: 0; right: 0; height: 54px; display: flex; align-items: center; gap: 16px; padding: 0 18px; background: linear-gradient(180deg, rgba(5,6,15,.92), rgba(5,6,15,.55)); border-bottom: 1px solid var(--border); z-index: 30; pointer-events: none; }
+  #topbar > * { pointer-events: auto; }
+  .tb-logo { font-family: 'Cinzel', serif; font-weight: 800; letter-spacing: 2px; font-size: 18px; color: var(--gold); text-shadow: 0 0 18px rgba(255,180,84,.4); }
+  .tb-stat { display: flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-weight: 500; font-size: 14px; }
+  .tb-stat .ico { font-size: 15px; }
+  #tb-prismarin { color: var(--prismarin); } #tb-eyes { color: var(--eyes); } #tb-rating { color: var(--gold); }
+  .tb-spacer { flex: 1; }
+  #tb-hero { font-family: 'Cinzel', serif; color: #fff; }
 
-  /* ---------- HUD ---------- */
-  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
-  #crosshair {
-    position: fixed; left: 50%; top: 50%; width: 22px; height: 22px;
-    transform: translate(-50%, -50%);
-  }
-  #crosshair::before, #crosshair::after {
-    content: ''; position: absolute; background: rgba(120,240,255,0.9);
-    box-shadow: 0 0 6px rgba(120,240,255,0.8);
-  }
-  #crosshair::before { left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-50%); }
-  #crosshair::after { top: 50%; left: 0; height: 2px; width: 100%; transform: translateY(-50%); }
+  /* ---- island action bar ---- */
+  #island-ui { position: fixed; bottom: 0; left: 0; right: 0; padding: 14px 18px; display: flex; gap: 10px; align-items: center; background: linear-gradient(0deg, rgba(5,6,15,.9), transparent); z-index: 25; }
+  #island-ui.hidden { display: none; }
+  .btn { border: 1px solid var(--border); background: var(--panel); color: #e8eeff; font-family: 'Rubik', sans-serif; font-weight: 500; font-size: 13px; padding: 10px 16px; border-radius: 10px; cursor: pointer; transition: .15s; display: inline-flex; align-items: center; gap: 7px; }
+  .btn:hover { border-color: var(--gold); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn-primary { background: linear-gradient(180deg, #ffb454, #e07b2a); color: #1a0e02; border-color: #ffb454; font-weight: 700; }
+  .btn-primary:hover { box-shadow: 0 0 22px rgba(255,180,84,.5); }
+  .btn-ghost { background: transparent; }
+  .btn.big { padding: 14px 22px; font-size: 15px; }
+  #sim-depth { background: var(--panel); border: 1px solid var(--border); color: #e8eeff; border-radius: 10px; padding: 9px 12px; font-family: 'Rubik'; font-size: 13px; }
 
-  .hud-top-left { position: absolute; top: 18px; left: 22px; width: 300px; }
-  .hp-wrap { height: 16px; border: 2px solid rgba(120,200,255,0.6); border-radius: 3px; background: rgba(10,20,35,0.8); overflow: hidden; }
-  #hp-bar {
-    height: 100%; width: 100%;
-    background: linear-gradient(90deg, #00ff9d, #66f0ff);
-    transition: width 0.15s, background 0.2s;
-    box-shadow: 0 0 12px rgba(0,255,157,0.5);
+  /* ---- building panel ---- */
+  #building-panel { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); width: min(440px, 92vw); background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 16px; z-index: 40; box-shadow: 0 20px 60px rgba(0,0,0,.6); backdrop-filter: blur(10px); }
+  #building-panel.hidden { display: none; }
+  .bp-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .bp-avatar { width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 18px currentColor; }
+  .bp-name { font-family: 'Cinzel'; font-weight: 600; font-size: 17px; }
+  .bp-title { font-size: 12px; color: #8a9ac8; }
+  .bp-close { margin-left: auto; background: none; border: none; color: #8a9ac8; font-size: 18px; cursor: pointer; }
+  .bp-look { font-size: 13px; color: #aab6dd; margin-bottom: 8px; }
+  .bp-pers { font-size: 13px; color: #7a88aa; font-style: italic; margin-bottom: 8px; }
+  .bp-line { font-size: 14px; line-height: 1.5; margin-bottom: 12px; padding: 10px; background: rgba(255,180,84,.08); border-left: 3px solid var(--gold); border-radius: 4px; }
+  .bp-action { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .stat-line { font-size: 13px; color: #b8c4e8; }
+
+  /* ---- combat ---- */
+  #combat { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; background: radial-gradient(ellipse at 50% 40%, rgba(30,10,40,.6), rgba(5,6,15,.95) 70%); }
+  #combat.hidden { display: none; }
+  #combat-enemy { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 20px; }
+  .ce-avatar { font-size: 80px; filter: drop-shadow(0 0 30px rgba(255,80,120,.5)); margin-bottom: 10px; }
+  .ce-name { font-family: 'Cinzel'; font-weight: 700; font-size: 22px; margin-bottom: 8px; }
+  .boss-tag { font-size: 11px; color: #ff5a7a; border: 1px solid #ff5a7a; padding: 2px 6px; border-radius: 6px; vertical-align: middle; }
+  .ce-hp, .cp-hp { width: min(360px, 80vw); }
+  .bar { height: 16px; background: rgba(0,0,0,.5); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
+  .bar .fill { height: 100%; transition: width .3s; }
+  .ce-hp .fill { background: linear-gradient(90deg, #ff4a6a, #ff8a5a); }
+  .cp-hp .fill.hp { background: linear-gradient(90deg, #4dd0ff, #6affb0); }
+  .ce-hp .fill + span, .cp-hp .fill + span { font-size: 12px; color: #c8d4f8; display: block; text-align: center; margin-top: 3px; }
+  .ce-block, .cp-block { font-size: 14px; color: var(--block); margin-top: 6px; }
+  .ce-intent { margin-top: 8px; font-size: 16px; }
+  .intent.atk { color: #ff5a7a; } .intent.blk { color: var(--block); } .intent.none { color: #556; }
+
+  #combat-player { padding: 14px; background: linear-gradient(0deg, rgba(5,6,15,.9), transparent); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .cp-energy { display: flex; gap: 4px; }
+  .energy { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; background: rgba(0,0,0,.5); border: 1px solid var(--border); opacity: .35; }
+  .energy.on { background: radial-gradient(circle, #ffd24a, #c08020); color: #1a0e02; opacity: 1; box-shadow: 0 0 12px rgba(255,210,74,.6); }
+  .cp-deck { font-size: 12px; color: #8a9ac8; margin-left: auto; }
+  .cp-block { color: var(--block); }
+
+  #combat-hand { display: flex; gap: 10px; justify-content: center; align-items: flex-end; padding: 10px 14px 16px; min-height: 230px; flex-wrap: wrap; }
+  .card { width: 130px; min-height: 180px; background: linear-gradient(160deg, var(--panel-2), rgba(10,16,32,.95)); border: 2px solid var(--border); border-radius: 12px; padding: 10px; cursor: pointer; position: relative; transition: transform .12s, box-shadow .12s; display: flex; flex-direction: column; gap: 6px; }
+  .card:hover { transform: translateY(-22px) scale(1.05); box-shadow: 0 16px 40px rgba(0,0,0,.7); z-index: 5; }
+  .card.disabled { opacity: .45; filter: grayscale(.6); }
+  .card-cost { position: absolute; top: -8px; left: -8px; width: 28px; height: 28px; border-radius: 50%; background: radial-gradient(circle, #ffd24a, #c08020); color: #1a0e02; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 0 10px rgba(255,210,74,.5); }
+  .card-type { font-size: 10px; color: #8a9ac8; text-transform: uppercase; letter-spacing: 1px; }
+  .card-name { font-family: 'Cinzel'; font-weight: 600; font-size: 13px; line-height: 1.2; }
+  .card-desc { font-size: 11px; line-height: 1.35; color: #c8d4f8; flex: 1; }
+  .lvl { font-size: 10px; color: var(--gold); }
+  .rarity-common { border-color: #6a78a8; } .rarity-uncommon { border-color: #4affa0; } .rarity-rare { border-color: #4d8aff; } .rarity-epic { border-color: #b06aff; } .rarity-legendary { border-color: #ffb454; } .rarity-mythic { border-color: #ff4a6a; box-shadow: 0 0 14px rgba(255,74,106,.4); }
+  .rarity-legendary { box-shadow: 0 0 12px rgba(255,180,84,.4); } .rarity-epic { box-shadow: 0 0 10px rgba(176,106,255,.35); } .rarity-rare { box-shadow: 0 0 8px rgba(77,138,255,.3); } .rarity-uncommon { box-shadow: 0 0 8px rgba(74,255,160,.25); }
+
+  #combat-actions { display: flex; gap: 10px; justify-content: center; padding: 0 14px 14px; }
+  #end-turn { min-width: 160px; justify-content: center; }
+  #combat-log { position: fixed; bottom: 200px; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-size: 12px; color: #b8c4e8; z-index: 51; }
+  #combat-flash { position: fixed; top: 22%; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--gold); color: var(--gold); font-family: 'Cinzel'; font-size: 22px; padding: 12px 24px; border-radius: 12px; z-index: 60; text-align: center; }
+  #combat-flash.hidden { display: none; }
+  #combat-reward { position: fixed; inset: 0; z-index: 70; background: rgba(5,6,15,.92); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px; }
+  #combat-reward.hidden { display: none; }
+  .rw-title { font-family: 'Cinzel'; font-weight: 800; font-size: 34px; color: var(--gold); text-shadow: 0 0 24px rgba(255,180,84,.5); }
+  .rw-line { font-size: 16px; } .rw-actions { margin-top: 10px; }
+
+  /* ---- overlay ---- */
+  #overlay { position: fixed; inset: 0; z-index: 65; background: rgba(5,6,15,.85); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
+  #overlay.hidden { display: none; }
+  #overlay-content { width: min(560px, 94vw); max-height: 86vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+  .ov-title { font-family: 'Cinzel'; font-weight: 700; font-size: 20px; color: var(--gold); margin-bottom: 14px; }
+  .ov-title .sub { font-size: 12px; color: #8a9ac8; font-family: 'Rubik'; font-weight: 400; margin-left: 8px; }
+  .ov-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .ov-item { display: flex; align-items: center; gap: 12px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .ov-item.disabled { opacity: .5; } .ov-item.done-row { opacity: .85; }
+  .ov-item > div:first-child { flex: 1; }
+  .ov-desc { font-size: 12px; color: #8a9ac8; }
+  .ov-cost { font-size: 13px; color: var(--gold); white-space: nowrap; }
+  .done { color: #4affa0; font-size: 20px; }
+  .roulette { display: flex; justify-content: center; margin-bottom: 14px; }
+  .wheel { font-size: 90px; filter: drop-shadow(0 0 30px rgba(255,90,122,.5)); }
+  .deck-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .deck-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .dc-cost { width: 24px; height: 24px; border-radius: 50%; background: radial-gradient(circle, #ffd24a, #c08020); color: #1a0e02; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+  .dc-type { font-size: 10px; color: #8a9ac8; text-transform: uppercase; }
+
+  /* ---- hero create ---- */
+  #hero-create { position: fixed; inset: 0; z-index: 80; background: radial-gradient(ellipse at center, rgba(20,10,40,.95), rgba(5,6,15,.98)); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+  #hero-create.hidden { display: none; }
+  #hero-create h1 { font-family: 'Cinzel'; font-weight: 800; font-size: 40px; color: var(--gold); text-shadow: 0 0 30px rgba(255,180,84,.5); }
+  #hero-create p { color: #aab6dd; max-width: 460px; text-align: center; line-height: 1.6; }
+  #hero-name { background: var(--panel); border: 1px solid var(--border); color: #e8eeff; border-radius: 10px; padding: 12px 16px; font-family: 'Cinzel'; font-size: 16px; width: min(360px, 90vw); text-align: center; }
+  #hero-name:focus { outline: none; border-color: var(--gold); }
+
+  /* ---- flash ---- */
+  #flash { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--gold); color: #e8eeff; font-size: 15px; padding: 10px 20px; border-radius: 10px; z-index: 75; text-align: center; }
+  #flash.hidden { display: none; }
+
+  @media (max-width: 640px) {
+    .tb-logo { display: none; } .tb-stat { padding: 4px 8px; font-size: 12px; }
+    .card { width: 100px; min-height: 150px; } .ce-avatar { font-size: 60px; }
   }
-  #hp-bar.low { background: linear-gradient(90deg, #ff3355, #ff8800); box-shadow: 0 0 14px rgba(255,51,85,0.7); }
-  .hp-text { margin-top: 4px; font-size: 13px; color: #bdf; letter-spacing: 1px; }
-
-  .hud-top-center { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); text-align: center; }
-  .wave-label { font-size: 26px; font-weight: 800; letter-spacing: 6px; color: #fff; text-shadow: 0 0 14px #00e5ff; }
-  .enemies-left { font-size: 14px; color: #9cc; letter-spacing: 2px; margin-top: 2px; }
-
-  .hud-top-right { position: absolute; top: 18px; right: 22px; text-align: right; }
-  .score-line { font-size: 20px; color: #ffd766; text-shadow: 0 0 10px rgba(255,200,80,0.6); }
-  .combo-line { font-size: 14px; color: #9cc; }
-
-  .hud-bottom { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; }
-  .weapon-line { display: flex; gap: 18px; align-items: baseline; }
-  #weapon-name { font-size: 22px; font-weight: 800; color: #fff; text-shadow: 0 0 12px #00e5ff; }
-  #ammo { font-size: 18px; color: #ffd766; min-width: 130px; text-align: right; }
-  .dash-line { display: flex; gap: 10px; align-items: center; font-size: 12px; color: #9cc; letter-spacing: 2px; }
-  .dash-bar-wrap { width: 140px; height: 6px; background: rgba(20,40,60,0.8); border: 1px solid rgba(120,200,255,0.4); border-radius: 3px; overflow: hidden; }
-  #dash-cd { height: 100%; width: 100%; background: #00ff9d; box-shadow: 0 0 8px #00ff9d; transition: width 0.1s; }
-  #dash-text { min-width: 90px; }
-  .weapon-slots { display: flex; gap: 10px; margin-top: 4px; }
-  .slot { font-size: 11px; padding: 3px 10px; border: 1px solid rgba(120,200,255,0.4); border-radius: 3px; color: #678; background: rgba(10,20,35,0.6); letter-spacing: 1px; }
-  .slot.owned { color: #9cf; border-color: rgba(0,229,255,0.6); }
-
-  .banner {
-    position: fixed; top: 18%; left: 50%; transform: translateX(-50%) scale(0.8);
-    text-align: center; pointer-events: none; opacity: 0; transition: all 0.35s;
-    font-size: 52px; font-weight: 900; letter-spacing: 8px; color: #fff;
-    text-shadow: 0 0 18px #00e5ff, 0 0 44px rgba(0,229,255,0.6);
-  }
-  .banner.show { opacity: 1; transform: translateX(-50%) scale(1); }
-  #banner-sub { font-size: 18px; letter-spacing: 4px; color: #7fdfff; margin-top: 10px; text-shadow: 0 0 12px #00e5ff; font-weight: 400; }
-
-  #hitmarker {
-    position: fixed; left: 50%; top: 50%; width: 26px; height: 26px;
-    transform: translate(-50%, -50%) scale(0); pointer-events: none; transition: transform 0.08s;
-  }
-  #hitmarker.show { transform: translate(-50%, -50%) scale(1); }
-  #hitmarker::before, #hitmarker::after {
-    content: ''; position: absolute; left: 50%; top: 50%; width: 10px; height: 3px;
-    background: #fff; transform: translate(-50%, -50%) rotate(45deg); box-shadow: 0 0 6px #fff;
-  }
-  #hitmarker::after { transform: translate(-50%, -50%) rotate(-45deg); }
-  #hitmarker.crit::before, #hitmarker.crit::after { background: #ffd700; box-shadow: 0 0 8px #ffd700; }
-
-  .dmg-num {
-    position: absolute; font-weight: 800; font-size: 18px; top: 0; left: 0;
-    text-shadow: 0 0 8px currentColor, 0 2px 3px #000; white-space: nowrap;
-    will-change: transform, opacity;
-  }
-
-  #vignette {
-    position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.3s;
-    background: radial-gradient(ellipse at center, transparent 55%, rgba(255,0,30,0.45) 100%);
-  }
-
-  /* ---------- overlays ---------- */
-  .overlay {
-    position: fixed; inset: 0; z-index: 20;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(4,6,14,0.78); backdrop-filter: blur(6px);
-  }
-  .menu-inner, .shop-inner, .pause-inner, .go-inner { text-align: center; }
-
-  .title {
-    font-size: 84px; font-weight: 900; letter-spacing: 14px;
-    background: linear-gradient(180deg, #fff, #66f0ff 60%, #00b8e6);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    filter: drop-shadow(0 0 30px rgba(0,229,255,0.35));
-  }
-  .subtitle { color: #7fdfff; letter-spacing: 6px; margin: 10px 0 34px; font-size: 15px; }
-
-  .btn {
-    cursor: pointer; border: 2px solid #00e5ff; background: rgba(0,40,60,0.6); color: #bff;
-    font: 700 18px 'Segoe UI', system-ui, sans-serif; letter-spacing: 3px;
-    padding: 14px 38px; border-radius: 4px;
-    box-shadow: 0 0 18px rgba(0,229,255,0.35), inset 0 0 12px rgba(0,229,255,0.15);
-    transition: all 0.15s;
-  }
-  .btn:hover { background: rgba(0,80,110,0.8); box-shadow: 0 0 32px rgba(0,229,255,0.6); transform: translateY(-2px); }
-  .btn-primary { border-color: #00ff9d; color: #d9ffe9; box-shadow: 0 0 22px rgba(0,255,157,0.4), inset 0 0 12px rgba(0,255,157,0.12); }
-  .btn-primary:hover { box-shadow: 0 0 44px rgba(0,255,157,0.7); }
-  .btn-ghost { border-color: rgba(150,180,220,0.5); color: #9ab; font-size: 14px; padding: 8px 18px; letter-spacing: 2px; }
-
-  .controls {
-    margin-top: 34px; display: grid; grid-template-columns: repeat(2, auto); gap: 8px 34px;
-    color: #789; font-size: 13px; letter-spacing: 1px; justify-content: center;
-  }
-  .ctrl b { color: #9cf; font-weight: 700; margin-right: 8px; }
-
-  .menu-foot { margin-top: 26px; }
-  .credits {
-    margin: 14px auto 0; max-width: 560px; font-size: 12px; color: #567; line-height: 1.6;
-    border-top: 1px solid rgba(120,200,255,0.2); padding-top: 12px;
-  }
-  .credits b { color: #789; }
-
-  .shop-title { font-size: 34px; font-weight: 900; letter-spacing: 10px; color: #fff; text-shadow: 0 0 18px #00e5ff; }
-  .shop-cards { display: flex; gap: 22px; margin: 28px 0; }
-  .card {
-    width: 250px; border: 2px solid #00e5ff; border-radius: 8px; background: rgba(6,20,34,0.85);
-    padding: 22px 18px; cursor: pointer; transition: all 0.15s; position: relative;
-  }
-  .card:hover { border-color: #fff; box-shadow: 0 0 34px rgba(0,229,255,0.5); transform: translateY(-6px); }
-  .card-key {
-    position: absolute; top: 8px; right: 12px; color: #00e5ff; font-weight: 700;
-    border: 1px solid #00e5ff; border-radius: 4px; padding: 0 8px; font-size: 13px;
-  }
-  .card-name { font-size: 21px; font-weight: 800; color: #fff; margin: 12px 0 8px; }
-  .card-desc { font-size: 14px; color: #9cc; line-height: 1.5; }
-
-  .pause-title { font-size: 40px; font-weight: 900; letter-spacing: 10px; color: #fff; text-shadow: 0 0 18px #00e5ff; margin-bottom: 28px; }
-  .go-title { font-size: 38px; font-weight: 900; letter-spacing: 8px; color: #ff5577; text-shadow: 0 0 22px rgba(255,85,119,0.6); margin-bottom: 26px; }
-  .go-stats { display: flex; gap: 40px; margin-bottom: 30px; }
-  .go-stat { display: flex; flex-direction: column; gap: 6px; }
-  .go-stat span { color: #678; font-size: 13px; letter-spacing: 3px; }
-  .go-stat b { color: #fff; font-size: 34px; text-shadow: 0 0 14px #00e5ff; }
 </style>
-<script type="importmap">
-{
-  "imports": {
-    "three": "/node_modules/three/build/three.module.js",
-    "three/addons/": "/node_modules/three/examples/jsm/"
-  }
-}
-</script>
 </head>
 <body>
 <canvas id="game"></canvas>
 
-<div id="loading">
-  <div class="load-title">ATLANT</div>
-  <div class="load-sub">инициализация арены…</div>
-  <div class="load-bar-wrap"><div id="loading-bar" class="load-bar"></div></div>
-  <div id="loading-text" class="load-text">Загрузка 3D-моделей…</div>
+<!-- top bar -->
+<div id="topbar">
+  <div class="tb-logo">ATLANTIS</div>
+  <div class="tb-stat"><span class="ico">💎</span><span id="tb-prismarin">0</span></div>
+  <div class="tb-stat"><span class="ico">👁️</span><span id="tb-eyes">0</span></div>
+  <div class="tb-spacer"></div>
+  <div class="tb-stat"><span class="ico">⭐</span><span id="tb-rating">0</span></div>
+  <div class="tb-stat"><span class="ico">🏰</span><span id="tb-hero">Безымянный</span></div>
 </div>
 
-<!-- HUD -->
-<div id="hud" class="hidden">
-  <div id="crosshair"></div>
-  <div class="hud-top-left">
-    <div class="hp-wrap"><div id="hp-bar"></div></div>
-    <div id="hp-text" class="hp-text">120 / 120</div>
-  </div>
-  <div class="hud-top-center">
-    <div id="wave-label" class="wave-label">ВОЛНА 1</div>
-    <div id="enemies-left" class="enemies-left">Осталось врагов: 0</div>
-  </div>
-  <div class="hud-top-right">
-    <div class="score-line">Очки <span id="score">0</span></div>
-    <div class="combo-line">Комбо <span id="combo">—</span></div>
-  </div>
-  <div class="hud-bottom">
-    <div class="weapon-line">
-      <div id="weapon-name">Бластер</div>
-      <div id="ammo">30 / 30</div>
-    </div>
-    <div class="dash-line">
-      <span>Даш</span>
-      <div class="dash-bar-wrap"><div id="dash-cd"></div></div>
-      <span id="dash-text"></span>
-    </div>
-    <div id="weapon-slots" class="weapon-slots"></div>
-  </div>
-  <div id="banner" class="banner hidden"><div id="banner-main"></div><div id="banner-sub"></div></div>
-  <div id="hitmarker" class="hitmarker"></div>
-  <div id="damage-numbers"></div>
-  <div id="vignette"></div>
+<!-- island UI -->
+<div id="island-ui">
+  <button class="btn btn-primary big" id="enter-sim">⚔ Отправиться в симуляцию</button>
+  <select id="sim-depth">
+    <option value="1">Сектор 1</option>
+    <option value="2">Сектор 2</option>
+    <option value="3">Сектор 3</option>
+    <option value="5">Сектор 5</option>
+  </select>
+  <button class="btn" id="btn-deck">🃏 Колода</button>
+  <button class="btn" id="btn-upgrades">⬆ Улучшения</button>
+  <button class="btn" id="btn-shop">🛒 Магазин</button>
+  <button class="btn" id="btn-achievements">🏆 Достижения</button>
+  <button class="btn" id="btn-roulette">🎰 Рулетка</button>
+  <button class="btn" id="btn-save">💾 Сохранить</button>
 </div>
 
-<!-- Menu -->
-<div id="menu" class="overlay hidden">
-  <div class="menu-inner">
-    <div class="title">ATLANT</div>
-    <div class="subtitle">ARENA BRAWL · РОГАЛИЧ С ТРЕТЬЕГО ЛИЦА</div>
-    <button id="start-btn" class="btn btn-primary">▶ НАЧАТЬ БИТВУ</button>
-    <div class="controls">
-      <div class="ctrl"><b>WASD</b> движение</div>
-      <div class="ctrl"><b>ЛКМ</b> огонь (зажать — автомат)</div>
-      <div class="ctrl"><b>Мышка</b> обзор</div>
-      <div class="ctrl"><b>Пробел</b> даш</div>
-      <div class="ctrl"><b>R</b> перезарядка</div>
-      <div class="ctrl"><b>1–4 / колесо</b> оружие</div>
-      <div class="ctrl"><b>P / Esc</b> пауза</div>
-    </div>
-    <div class="menu-foot">
-      <button id="credits-btn" class="btn btn-ghost">кредиты и лицензия</button>
-    </div>
-    <div id="credits" class="credits hidden">
-      <b>Ассеты:</b> three.js (MIT) · GLB-модели из examples three.js · Музыка: FreePD (CC0) · UI-звуки: Kenney (CC0) · Звуки оружия и взрывов — процедурный синтез WebAudio.
-    </div>
+<!-- building panel -->
+<div id="building-panel" class="hidden"></div>
+
+<!-- combat -->
+<div id="combat" class="hidden">
+  <div id="combat-enemy"></div>
+  <div id="combat-hand"></div>
+  <div id="combat-actions">
+    <button class="btn btn-primary" id="end-turn">Завершить ход ▶</button>
+    <button class="btn" id="flee">Бегство</button>
   </div>
+  <div id="combat-player"></div>
+</div>
+<div id="combat-log"></div>
+<div id="combat-flash" class="hidden"></div>
+<div id="combat-reward" class="hidden"></div>
+
+<!-- overlay -->
+<div id="overlay" class="hidden">
+  <div id="overlay-content"></div>
 </div>
 
-<!-- Shop -->
-<div id="shop" class="overlay hidden">
-  <div class="shop-inner">
-    <div class="shop-title">УЛУЧШЕНИЯ</div>
-    <div id="shop-cards" class="shop-cards"></div>
-    <button id="shop-skip" class="btn btn-ghost">Пропустить и продолжить →</button>
-  </div>
+<!-- hero create -->
+<div id="hero-create" class="hidden">
+  <h1>ДЕНЬ С NUBIA</h1>
+  <p>Корпорат пал. Системный пункт уже запечатан. Вы — Безымянный, распорядитель упадка на дне влажные. Выберите имя.</p>
+  <input id="hero-name" type="text" maxlength="16" placeholder="Введите имя…">
+  <button class="btn btn-primary big" id="hero-confirm">Встать с сёстрами</button>
 </div>
 
-<!-- Pause -->
-<div id="pause" class="overlay hidden">
-  <div class="pause-inner">
-    <div class="pause-title">ПАУЗА</div>
-    <button id="resume-btn" class="btn btn-primary">продолжить</button>
-  </div>
-</div>
-
-<!-- Game over -->
-<div id="gameover" class="overlay hidden">
-  <div class="go-inner">
-    <div class="go-title">СИСТЕМА ЗАТЕКЛА</div>
-    <div id="go-stats" class="go-stats"></div>
-    <button id="go-restart" class="btn btn-primary">попробовать с начала</button>
-  </div>
-</div>
+<!-- flash -->
+<div id="flash" class="hidden"></div>
 
 <script type="module" src="/src/main.js"></script>
 </body>
