@@ -12,8 +12,10 @@ import { Combat } from './combat.js';
 import {
   loadState, saveState, tickIdle, checkAchievements, buyUpgrade, UPGRADES,
   addPrismarin, spendPrismarin, spendEyes, ownCard, deckCards, ACHIEVEMENTS,
+  loadStateFromServer, saveStateToServer,
 } from './economy.js';
 import { CARD_DB, RARITY, rollCardDrop } from './cards.js';
+import { TG, initAuth, loadLoginWidgetScript, setOnChange, loadConfig } from './telegram.js';
 
 class Game {
   constructor() {
@@ -58,6 +60,7 @@ class Game {
 
     this.clock = new THREE.Clock();
     this.lastTopbarCheck = Date.now();
+    this.lastServerSave = Date.now();
     this._audioInited = false;
 
     this.bindInput();
@@ -66,6 +69,53 @@ class Game {
 
     this.loop = this.loop.bind(this);
     requestAnimationFrame(this.loop);
+  }
+
+  // ---- Telegram auth + cloud save ----
+  async initTG() {
+    try {
+      await loadConfig();
+      await loadLoginWidgetScript();
+      await initAuth();
+    } catch (e) { console.warn('TG init failed', e); }
+    setOnChange(() => { this.onTGChange(); });
+    this.renderLoginUI();
+  }
+
+  async onTGChange() {
+    if (TG.ready) {
+      // load server save and merge
+      try {
+        const serverState = await loadStateFromServer(TG);
+        if (serverState) {
+          this.state = serverState;
+          this.renderTopbar();
+          this.flash(`Привет, ${TG.user.first_name || TG.user.username || 'путешественник'}! Синхронизация завершена.`);
+        }
+      } catch (e) { console.warn('Server load failed', e); }
+    }
+    this.renderLoginUI();
+  }
+
+  async syncServer() {
+    if (TG.ready && Date.now() - this.lastServerSave > 8000) {
+      this.lastServerSave = Date.now();
+      await saveStateToServer(TG, this.state);
+    }
+  }
+
+  renderLoginUI() {
+    const el = document.getElementById('login-status');
+    if (!el) return;
+    if (TG.ready && TG.user) {
+      const name = TG.user.first_name || TG.user.username || 'путешественник';
+      el.innerHTML = `<span class="tg-online">●</span> ${escapeHtml(name)}`;
+      el.title = `Telegram: ${TG.user.username || '(без юзернейма)'}\nID: ${TG.userId}`;
+    } else {
+      el.innerHTML = `<span class="tg-off">○</span> <button id="tg-login-btn" class="tg-login-link">Войти через Telegram</button>`;
+      const btn = document.getElementById('tg-login-btn');
+      if (btn) btn.addEventListener('click', () => { this.flash('Откройте в Telegram или разрешите доступ'); });
+    }
   }
 
   // ---- audio init on first gesture ----
@@ -385,6 +435,8 @@ class Game {
       this.renderTopbar();
       if (Math.random() < 0.05) saveState(this.state);
     }
+    // cloud sync
+    this.syncServer();
 
     this.fx.update(dt);
     this.renderer.render(this.scene, this.camera);
@@ -397,10 +449,15 @@ class Game {
   }
 }
 
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   const game = new Game();
   window.game = game;
   game.renderTopbar();
+  game.initTG();
   if (game.state.hero.name === 'Безымянный') {
     document.getElementById('hero-create').classList.remove('hidden');
   }

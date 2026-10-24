@@ -54,6 +54,19 @@ export function loadState() {
   }
 }
 
+export async function loadStateFromServer(TG) {
+  if (!TG || !TG.ready) return null;
+  const server = await TG.loadSave();
+  if (!server) return null;
+  // merge server state over defaults
+  return { ...defaultState(), ...server, hero: { ...defaultState().hero, ...server.hero }, island: { ...defaultState().island, ...server.island }, cards: { ...defaultState().cards, ...server.cards }, stats: { ...defaultState().stats, ...server.stats }, buildings: { ...defaultState().buildings, ...server.buildings } };
+}
+
+export async function saveStateToServer(TG, s) {
+  if (!TG || !TG.ready) return false;
+  return TG.saveSave(s);
+}
+
 export function saveState(s) {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(s));

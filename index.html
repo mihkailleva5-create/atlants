@@ -32,6 +32,11 @@
   #tb-prismarin { color: var(--prismarin); } #tb-eyes { color: var(--eyes); } #tb-rating { color: var(--gold); }
   .tb-spacer { flex: 1; }
   #tb-hero { font-family: 'Cinzel', serif; color: #fff; }
+  #login-status { font-size: 12px; }
+  #login-status .tg-online { color: #4affa0; font-size: 14px; }
+  #login-status .tg-off { color: #8a9ac8; font-size: 14px; }
+  .tg-login-link { background: none; border: none; color: #4dd0ff; cursor: pointer; font-family: 'Rubik', sans-serif; font-size: 13px; text-decoration: underline; padding: 0; }
+  .tg-login-link:hover { color: var(--gold); }
 
   /* ---- island action bar ---- */
   #island-ui { position: fixed; bottom: 0; left: 0; right: 0; padding: 14px 18px; display: flex; gap: 10px; align-items: center; background: linear-gradient(0deg, rgba(5,6,15,.9), transparent); z-index: 25; }
@@ -152,6 +157,7 @@
   <div class="tb-stat"><span class="ico">💎</span><span id="tb-prismarin">0</span></div>
   <div class="tb-stat"><span class="ico">👁️</span><span id="tb-eyes">0</span></div>
   <div class="tb-spacer"></div>
+  <div class="tb-stat" id="login-status"><span class="tg-off">○</span> <span class="tg-login-link">Войти через Telegram</span></div>
   <div class="tb-stat"><span class="ico">⭐</span><span id="tb-rating">0</span></div>
   <div class="tb-stat"><span class="ico">🏰</span><span id="tb-hero">Безымянный</span></div>
 </div>
