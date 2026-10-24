@@ -71,6 +71,21 @@ window.onTelegramAuth = async function(user) {
 export async function initAuth() {
   await loadConfig();
 
+  // 0. Check localStorage for existing auth (from widget callback reload)
+  const savedToken = localStorage.getItem('tg_token');
+  const savedUser = localStorage.getItem('tg_user');
+  const savedUserId = localStorage.getItem('tg_user_id');
+  if (savedToken && savedUser && savedUserId) {
+    try {
+      TG.user = JSON.parse(savedUser);
+      TG.token = savedToken;
+      TG.userId = savedUserId;
+      TG.ready = true;
+      emit();
+      return true;
+    } catch (e) { /* corrupted data */ }
+  }
+
   // 1. Try WebApp if inside Telegram Mini App
   if (isWebApp()) {
     const wa = webApp();
