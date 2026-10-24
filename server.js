@@ -77,20 +77,9 @@ function readBody(req) {
 // Login Widget: callback has standard field names, data-check string uses auth_* names
 function verifyTelegramLogin(data, hash) {
   if (!BOT_TOKEN) return { ok: false, error: 'Bot token not configured' };
-  // Map callback fields to auth_* names (per Telegram Login Widget spec)
-  const mapping = {
-    id: 'auth_user_id',
-    first_name: 'auth_name',
-    username: 'auth_username',
-    photo_url: 'auth_photo_url',
-    auth_date: 'auth_date',
-  };
-  const fields = {};
-  for (const [src, dst] of Object.entries(mapping)) {
-    if (data[src] !== undefined) fields[dst] = String(data[src]);
-  }
-  const keys = Object.keys(fields).sort();
-  const dataCheckString = keys.map((k) => `${k}=${fields[k]}`).join('\n');
+  // Use ORIGINAL key names from Login Widget: id, first_name, username, photo_url, auth_date
+  const fields = Object.keys(data).filter(k => k !== 'hash').sort();
+  const dataCheckString = fields.map(k => `${k}=${data[k]}`).join('\n');
   const secretKey = crypto.createHmac('sha256', BOT_TOKEN).update(dataCheckString).digest();
   const computedHash = crypto.createHash('sha256').update(secretKey).digest('base64');
   return { ok: computedHash === hash, dataCheckString };
