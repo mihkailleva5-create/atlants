@@ -1,0 +1,14 @@
+{
+  "name": "atlants",
+  "version": "1.0.0",
+  "description": "ATLANT: Arena Brawl — 3D roguelike arena brawler on Three.js (GLB models, procedural WebAudio SFX, CC0 soundtrack)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["game", "threejs", "roguelike", "arena", "webaudio"],
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.186.1"
+  }
+}
