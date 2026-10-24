@@ -212,6 +212,33 @@
 <!-- flash -->
 <div id="flash" class="hidden"></div>
 
+<!-- Telegram Login Widget -->
+<script async src="https://telegram.org/js/telegram-widget.js?2" data-telegram-login="AtlantisCodeGame_bot" data-size="large" data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
+<script>
+// Global callback for Telegram Login Widget — must be plain JS, not module
+window.onTelegramAuth = async function(user) {
+  try {
+    const r = await fetch('/api/auth/telegram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ authData: user }),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      // Store token for save system
+      localStorage.setItem('tg_token', d.token);
+      localStorage.setItem('tg_user', JSON.stringify(d.user));
+      localStorage.setItem('tg_user_id', d.userId);
+      // Reload to pick up auth state
+      window.location.reload();
+    } else {
+      alert('Telegram auth failed: ' + (d.error || 'unknown'));
+    }
+  } catch (e) {
+    alert('Telegram auth error: ' + e.message);
+  }
+};
+</script>
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>
