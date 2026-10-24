@@ -1,12 +1,12 @@
 {
   "name": "atlants",
   "version": "1.0.0",
-  "description": "ATLANT: Arena Brawl — 3D roguelike arena brawler on Three.js (GLB models, procedural WebAudio SFX, CC0 soundtrack)",
+  "description": "ATLANTIS — 3D idle base on a drained flooded island + card roguelike sim-worlds + Prismarin economy + Telegram cloud saves",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "keywords": ["game", "threejs", "roguelike", "arena", "webaudio"],
+  "keywords": ["game", "threejs", "roguelike", "atlantis", "telegram", "cloud-saves"],
   "license": "MIT",
   "dependencies": {
     "three": "^0.186.1"
