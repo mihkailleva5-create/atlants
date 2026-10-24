@@ -15,7 +15,7 @@ import {
   loadStateFromServer, saveStateToServer,
 } from './economy.js';
 import { CARD_DB, RARITY, rollCardDrop } from './cards.js';
-import { TG, initAuth, loadLoginWidgetScript, setOnChange, loadConfig } from './telegram.js';
+import { TG, initAuth, setOnChange, loadConfig } from './telegram.js';
 
 class Game {
   constructor() {
@@ -75,7 +75,6 @@ class Game {
   async initTG() {
     try {
       await loadConfig();
-      await loadLoginWidgetScript();
       await initAuth();
     } catch (e) { console.warn('TG init failed', e); }
     setOnChange(() => { this.onTGChange(); });
@@ -114,7 +113,45 @@ class Game {
     } else {
       el.innerHTML = `<span class="tg-off">○</span> <button id="tg-login-btn" class="tg-login-link">Войти через Telegram</button>`;
       const btn = document.getElementById('tg-login-btn');
-      if (btn) btn.addEventListener('click', () => { this.flash('Откройте в Telegram или разрешите доступ'); });
+      if (btn) btn.addEventListener('click', async () => {
+        // Render the widget and show a modal-like overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'tg-login-overlay';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:100;display:flex;align-items:center;justify-content:center;';
+        overlay.innerHTML = `
+          <div style="background:#1a1a2e;padding:32px 48px;border-radius:16px;text-align:center;max-width:400px;">
+            <h3 style="color:#4dd0ff;margin-bottom:16px;">Войти через Telegram</h3>
+            <p style="color:#8a9ac8;margin-bottom:24px;">Нажмите на кнопку ниже для авторизации</p>
+            <div id="tg-widget-container" style="display:flex;justify-content:center;"></div>
+            <button id="tg-close-btn" style="margin-top:20px;background:none;border:1px solid #8a9ac8;color:#8a9ac8;padding:8px 24px;border-radius:8px;cursor:pointer;font-family:Rubik,sans-serif;">Закрыть</button>
+          </div>`;
+        document.body.appendChild(overlay);
+
+        // Render the widget
+        const { TG } = await import('./telegram.js');
+        const widget = document.createElement('telegram-login-widget');
+        widget.setAttribute('data-bot-name', TG.config.botName || 'AtlantisCodeGame_bot');
+        widget.setAttribute('data-size', 'large');
+        widget.setAttribute('data-onauth', 'onTelegramAuth(user)');
+        widget.setAttribute('data-request-access', 'write');
+        widget.setAttribute('data-userpic', 'false');
+        widget.setAttribute('data-style', 'bubbles');
+        widget.setAttribute('data-corner-radius', '12');
+        document.getElementById('tg-widget-container').appendChild(widget);
+
+        // Load widget script
+        if (!window.TelegramLoginWidget) {
+          const s = document.createElement('script');
+          s.async = true;
+          s.src = 'https://telegram.org/js/telegram-widget.js?2';
+          s.onload = () => { /* widget will render */ };
+          document.head.appendChild(s);
+        }
+
+        document.getElementById('tg-close-btn').addEventListener('click', () => {
+          overlay.remove();
+        });
+      });
     }
   }
 
